@@ -760,22 +760,62 @@ function getOpts(opts) {
     let outputArray = [];
 
     for (let i in opts) {
-        console.log("--->", i);
+        let opt = opts[i];
+
+        if (isOption([opt])) {
+            outputArray = optToArray(OPTS, opt, outputArray);
+        }
     }
 
     return outputArray;
 }
 
+/**
+ * Get all entered input files.
+ *
+ * @returns {Array}  List of input files.
+ */
 function getInputs() {
     return getOpts(['i', 'in-source']);
 }
 
+/**
+ * Get all entered output files.
+ *
+ * @returns {Array}  List of output files.
+ */
 function getOutpus() {
     return getOpts(['o', 'out-source']);
 }
 
+/**
+ * Get all entered texts.
+ *
+ * @returns {Array} List of texts to crypt.
+ */
 function getTexts() {
     return getOpts(['t', 'text']);
+}
+
+/**
+ * Aggregate values of specified options to list of value (merge shortopt and longopt)
+ *
+ * @param {Array}  optpool       Program options data.
+ * @param {String} name          Name of this option (short or long).
+ * @param {Array}  outputArray   Existing data list to aggregate in.
+ *
+ * @returns {Array}  List of values.
+ */
+function optToArray(optpool, name, outputArray) {
+    if (optpool[name]) {
+        if (optpool[name].val instanceof Array) {
+            outputArray = outputArray.concat(optpool[name].val);
+        } else {
+            outputArray = outputArray.concat([optpool[name].val])
+        }
+    }
+
+    return outputArray;
 }
 
 /**
@@ -840,6 +880,9 @@ function postCrypt(process) {
     }
 
     let keys = getKeys();
+    let inputs = getInputs();
+    let texts = getTexts();
+    let output = getOutpus();
 
 }
 

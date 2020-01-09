@@ -9,12 +9,13 @@ class vcrypt
 {
     protected function postCrypt ($process)
     {
-        $options = $this->argv;
-        $keys = $this->getKeys(); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+//        $options = $this->argv;
+//        $keys = $this->getKeys();
 
-        $inputs = $this->getInputs();
-        $texts = $this->getTexts();
-        $outputs = $this->getOutputs();
+//        $inputs = $this->getInputs();
+//        $texts = $this->getTexts();
+//        $outputs = $this->getOutputs();
+        //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         $outIndex = 0;
         $outputContent = null;
 
@@ -93,32 +94,6 @@ class vcrypt
                     echo $outputContent . PHP_EOL; // Les caractères spéciaux plante vsprintf
                 }
             }
-        }
-    }
-
-    protected function getOpts (Array $opts)
-    {
-        $outputArray = [];
-
-        foreach ($opts as $idx => $opt) {
-            if ($this->isOption([$opt])) $this->optToArray($this->argv, $opt, $outputArray);
-        }
-
-        return $outputArray;
-    }
-
-    protected function optToArray ($optpool, $name, &$array)
-    {
-        // Est-ce que l'option existe
-        if (isset($optpool[$name])) {
-            if (is_array($optpool[$name])) {
-                $array = array_merge($array, $optpool[$name]);
-            } else {
-                $array = array_merge($array, [$optpool[$name]]);
-            }
-            return true;
-        } else {
-            return false;
         }
     }
 
