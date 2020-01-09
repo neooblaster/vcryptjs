@@ -1,0 +1,29 @@
+{
+  "author": {
+    "name": "Nicolas DUPRE"
+  },
+  "bin": {
+    "vcrypt": "./bin/vcrypt.js"
+  },
+  "bugs": {
+    "url": "https://github.com/neooblaster/vcryptjs/issues"
+  },
+  "bundleDependencies": false,
+  "deprecated": false,
+  "description": "A command line to crypt your file with one more different keys",
+  "homepage": "https://github.com/neooblaster/vcrypt#readme",
+  "keywords": [
+    "Crypt"
+  ],
+  "license": "MIT",
+  "main": "bin/vcrypt.js",
+  "name": "vcryptjs",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/neooblaster/vcrypt.git"
+  },
+  "scripts": {
+    "test": "vcrypt -h"
+  },
+  "version": "1.0.0"
+}
