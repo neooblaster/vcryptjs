@@ -11,7 +11,7 @@
   "bundleDependencies": false,
   "deprecated": false,
   "description": "A command line to crypt your file or text with one more different keys",
-  "homepage": "https://github.com/neooblaster/vcrypt#readme",
+  "homepage": "https://github.com/neooblaster/vcryptjs#readme",
   "keywords": [
     "Crypt"
   ],
@@ -20,7 +20,7 @@
   "name": "vcryptjs",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/neooblaster/vcrypt.git"
+    "url": "git+ssh://git@github.com/neooblaster/vcryptjs.git"
   },
   "scripts": {
     "test": "vcrypt -h"
