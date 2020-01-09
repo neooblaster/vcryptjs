@@ -138,6 +138,7 @@ function getopt(shortopt, longopt = []) {
     let processedArg = 0;
     let implicitArg = 1;
     let procOptions = {};  // .optarg, .opt, .optval
+    let runWithoutError = true;
 
     process.argv.forEach(function(arg) {
         processedArg++;
@@ -161,6 +162,7 @@ function getopt(shortopt, longopt = []) {
                 if (opt === lgOptName) {
                     if (lgOptConfig === ':' && !optVal) {
                         log(`Option %s require a value`, 1, [opt]);
+                        runWithoutError = false;
                     }
 
                     if (procOptions[opt]) {
@@ -186,7 +188,7 @@ function getopt(shortopt, longopt = []) {
 
             if (nextOptChar1 === ':' && nextOptChar2 !== ':' && !optVal) {
                 log(`Option %s require a value`, 1, [opt]);
-                return;
+                runWithoutError = false;
             }
 
             if (procOptions[opt]) {
@@ -213,7 +215,11 @@ function getopt(shortopt, longopt = []) {
         }
     });
 
-    return procOptions;
+    if (runWithoutError) {
+        return procOptions;
+    } else {
+        process.exit();
+    }
 }
 
 // @TODO validation de la chaine shortopt pour limiter les doublons
@@ -334,334 +340,19 @@ function fileExists(path, level) {
  * @param clearMode     Indicate to not perform inclusion and then to clear included content.
  * @param options       Options de lecture du fichier définie dans l'instruction.
  */
-function readFile (file, nestedPath, outputFile, clearMode, options = {}) {
-    let lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
-
-    let writeOutput = true; // On n'ecrit pas le contenu si celui-ci est un contenu entre balise
-    let started = false;    // Vrai si l'instruction de cut Start à été trouvée
-    let ended = false;      // Vrai si l'instruction de cut End à été trouvée
-    let oneline = false;    // Vrai si l'instruction de cut Online à été trouvée
-
-
-    // Analyse du nesting dans la recursivité des appels readFile
-    let fileFolderPath = file.match(/(.+\/)(.+)/);
-    if (fileFolderPath) {
-        fileFolderPath = fileFolderPath[1];
-    } else {
-        fileFolderPath = '';
-    }
-
-    if (nestedPath) {
-        nestedPath = `${nestedPath}/${fileFolderPath}`;
-    } else {
-        nestedPath = fileFolderPath;
-    }
-
-
-
+function getFileContent (file/*, nestedPath, outputFile, clearMode, options = {}*/) {
+    // let lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
+    // let fileContent = '';
+    //
     // Lecture de chaque ligne du fichier
-    for (let l = 0; l < lines.length; l++) {
-        let line = lines[l];
-
-        let option = null;
-
-        // Déterminer l'option qui convient :
-        //  Si oneline, traiter la ligne demandée s'il s'agit d'elle
-        //  Puis terminer la lecture du fichier définitivement
-        //  Si on dispose des informations de cut start et end
-        option = (options.oneline) ? options.oneline
-            : (options.start && options.end) ? (
-                (!started) ? options.start : options.end
-            ) : null;
-
-        // Si on à une option, analyse de l'option
-        if (option) {
-            // Memorisation de l'option originale qui est manipulée à chaque ligne
-            // et nécessite un reset
-
-            // Première lecture, cet argument n'existe pas. ne surtout pas mémorisée la ligne modifiée
-            if(!option.option) option.option = Object.assign({}, option);
-            // Remise à zéro
-            option = Object.assign({}, option.option);
-            // Mémorisation
-            option.option = Object.assign({}, option);
-
-            // Analyse du paramètre line si disponible
-            readOption(option, 'line');
-
-            // Analyse du paramètre beginOffset si disponible
-            readOption(option, 'beginOffset');
-
-            // Analyse du paramètre endOffset si disponible
-            if (option.endOffset) readOption(option, 'endOffset');
-
-        }
-        // Si pas d'option, on est started
-        else {
-            started = true;
-        }
-
-        // Contrôle de la ligne (si spécifiée)
-        if (option) {
-            let lineMatch = false;
-
-            switch (option.lineType) {
-                case 'number':
-                    //console.log("Check line ", option.line, l+1);
-                    if (option.line === (l+1)) {
-                        lineMatch = true;
-                    }
-                    break;
-                case 'pattern':
-                    //lineMatch = true;
-                    break;
-            }
-
-            if (lineMatch) {
-                // Si c'est une oneline.
-                if (option.oneline) {
-                    oneline = true;
-                }
-                // Si pas démarré, alors on démarre, désormais on enregistre
-                if (!started) {
-                    started = true;
-                } else {
-                    ended = true;
-                }
-
-
-                // Traiter les offset
-                if (option.endOffset) {
-                    line = line.substr(option.beginOffset, option.endOffset);
-                } else {
-                    line = line.substr(option.beginOffset);
-                }
-            }
-        }
-
-
-
-        // Si c'est une instruction, la traiter
-        if (/^\[\]\([@#]import[><].+/.test(line)) {
-            //console.log("Une instruction", line);
-            //console.log("");
-
-            let instruction = line;
-
-            // Analyse de l'instruction
-            let instructionData = readInstruction(instruction);
-            //console.log(instructionData);
-            let instructionRole = instructionData.role;
-            let instructionType = instructionData.type;
-
-            // Si c'est une instruction d'ouverture
-            if (instructionRole === '>') {
-                // Si c'est une instruction existante
-                // reprocesser, mais bloquer l'écriture jusqu'à l'instruction de fin
-                if (instructionType === '#') {
-                    writeOutput = false;
-                }
-
-                // Si c'est une instruction nouvelle,
-                // elle est impaire, on traitera la suite
-                // mais il faut réécrire l'instruction avec le #
-                // et ajouter une instruction de clôture
-                if (instructionType === '@') {
-                    instruction = instruction.replace(/@/, '#');
-                }
-
-                // Generer l'instruction de clôture
-                closingInstruction = instruction.replace(">", "<");
-
-                // Securisation des instructions
-                if (/(?<!\\)\s/.test(instruction)) {
-                    instruction = instruction.replace(/\s/g, "\\ ");
-                    closingInstruction = closingInstruction.replace(/\s/g, "\\ ");
-                }
-
-                // Procéder à l'inclusion des contenus.
-                outputFile.write(instruction + "\n");
-                if (!clearMode) instructionData.inclusions.map(function (inclusion) {
-                    // Si on à demandé à envelopper dans un code block
-                    // Saisir le code block
-                    if (inclusion.code.wrapped) {
-                        outputFile.write("````" + inclusion.code.language + "\n");
-                    }
-
-                    // Consolidation des cuts
-                    //
-                    //  [X] 200             => Debut=200,  Fin=EOF
-                    //  [X] 200:300         => Debut=200,  Fin=300
-                    //  [X] :300            => Debut=0,    Fin=300
-                    //  [X] 200:300:400     => Debut=200,  Fin=300   & Debut=400 & Fin=EOF
-                    //  [X] 200,1:300,,5    => Debut=200,1 Fin=300,5
-                    //  [X] 200:300,1,2:400 => Debut=0,    Fin=200   & 300,1,2 & Debut=400, Fin=EOF
-                    //  [X] 200:300:400,1,2 => Debut=200,  Fin=300   & 400,1,2
-                    //  [X] 200:300:400,1   => Debut=200,  Fin=300   & Debut=400,1 Fin=EOF
-                    //  [X] 200:300:400,,2  => Debut=200,  Fin=300   & 400,0,2
-                    //  [X] 200:300,1       => Debut=0,    Fin=200   & 300,1,EOL
-                    //  [X] ,1              => Debut=0,1   Fin=EOF
-                    //
-                    let lastCut = null;
-                    let startCut = null;
-                    let endCut = null;
-                    let cutCouple = [];
-
-                    // Parcourir chaque cut pour en constituer des couples
-                    for(let c = 0; c < inclusion.cuts.length; c++) {
-                        let cut = inclusion.cuts[c];
-
-                        // Le cut est online si :
-                        //  - Les 3 paramètres sont spécifiés
-                        //  - Si le précédent cut n'est pas un cut start avec un endOffset
-                        //  - Si le précédent cut est un cut start avec un beginStart
-                        if (
-                            (cut.line && cut.beginOffset && cut.endOffset) ||
-                            (cut.line && cut.endOffset && !startCut) ||
-                            (cut.line && cut.beginOffset && startCut)
-                        ) {
-                            // Si nous avions un cut avant celui-ci identifié en tant que startCut
-                            // celui-ci deviens endCut et le startCut est generique
-                            if (startCut) {
-                                cutCouple.push({
-                                    start: readCut(""),
-                                    end: lastCut
-                                });
-                                startCut = null;
-                            }
-
-                            // Celui actuel est un couple oneline
-                            cut.oneline = true;
-                            cutCouple.push({
-                                oneline: cut
-                            })
-                        }
-                        // Traiter comme il se doit
-                        else {
-                            if (!startCut) {
-                                startCut = cut;
-                            } else {
-                                endCut = cut;
-                            }
-                        }
-
-                        // Lorsque nous avons un startCut et un endCut, on peu constituer un couple
-                        // On remet tous à zéro pour les autres loop/
-                        if (startCut && endCut) {
-                            cutCouple.push({
-                                start: startCut,
-                                end: endCut
-                            });
-
-                            startCut = null;
-                            endCut = null;
-                        }
-
-                        lastCut = cut;
-                    }
-
-                    // Si le startCut est défini, ici nous sommes plus dans la lecture
-                    // des cuts. Il faut donc fixer un endCut à EOF
-                    // Si le startCut est défini, il faut fixer la fin à EOF
-                    if (startCut) {
-                        cutCouple.push({
-                            start: startCut,
-                            end: readCut("")
-                        });
-                        startCut = null;
-                    }
-
-                    // Restaurer les caractères échappés
-                    inclusion.file = inclusion.file.replace(/\\\s/g, ' ');
-
-                    // Exécuter les couples pour l'insertion des données du fichier.
-                    if (cutCouple.length > 0) {
-                        cutCouple.map(function (couple) {
-                            fileExists(`${nestedPath}${inclusion.file}`, 1);
-                            readFile(`${nestedPath}${inclusion.file}`, nestedPath, outputFile, clearMode, couple);
-                        });
-                    } else {
-                        fileExists(`${nestedPath}${inclusion.file}`, 1);
-                        readFile(`${nestedPath}${inclusion.file}`, nestedPath, outputFile, clearMode);
-                    }
-
-                    // Si on avait demandé à envelopper dans un code block
-                    // Saisir le codede côture
-                    if (inclusion.code.wrapped) {
-                        outputFile.write("````\n");
-                    }
-                });
-                outputFile.write(closingInstruction + "\n");
-            }
-
-            // Si c'est une instruction de clôture.
-            if (
-                instructionRole === '<' &&
-                instructionRole === '#'
-            ) {
-                //outputFile.write(instruction + "\n");
-                writeOutput = true;
-            }
-        }
-
-        // Ce n'est pas une instruction,
-        // saisir le contenu si autorisé et en accord avec les options specifiées
-        else {
-            //console.log("Pas une instruction", line);
-            // Si ce n'est pas du contenu entre balise
-            if (writeOutput) {
-                //console.log("WriteOutput: pas de contenu de balise");
-
-                // Vérifier que la line que nous devons écrire ne contient pas
-                // un emplacement qui est relatif
-                //@TODO, chek début pour commencement par /. Ne rien faire si oui
-                let pathToFile = null;
-                // #1 Modele Markdown 1 : [XX]: path/to/file
-                let mdPattern1 = /(.*)(\[.*\]:\s*)(.*\/?.*)(.*)/;
-                // #2 Modele Markdown 2 : ![](path/to/file)
-                let mdPattern2 = /(.*)(\[.*\])(\()(.*)(\))(.*)/;
-                // #3 Balise HMTL img    : src="path/to/file"
-                // #4 Attribut HTML      : url('path/to/file')*
-
-                // Case #1 : Modèle Markdown 1 :
-                if (mdPattern1.test(line)) {
-                    pathToFile = line.match(mdPattern1);
-
-                    line = pathToFile[1]             // Chaine avant
-                        + pathToFile[2]              // Début Modele MD1 (alt)
-                        + nestedPath + pathToFile[3] // Path (ref)
-                        + pathToFile[4];             // Fin
-                }
-
-                // Case #2 : Modèle Markdown 2 :
-                if (mdPattern2.test(line)) {
-                    pathToFile = line.match(mdPattern2);
-
-                    line = pathToFile[1]             // Chaine avant
-                        + pathToFile[2]              // Début Modele MD2 (alt)
-                        + pathToFile[3]              // Parenthèse (
-                        + nestedPath + pathToFile[4] // Path (path)
-                        + pathToFile[5]              // Parenthèse )
-                        + pathToFile[6];             // Fin
-                }
-
-                // Si on à démarré l'écriture ou on a affaire à une oneline
-                if (started || oneline) {
-                    //console.log("Ecrire", line);
-                    //console.log("");
-                    outputFile.write(line + "\n");
-                }
-
-                // Si oneline, terminer la lecture ICI
-                if (oneline) break;
-                // Si ended, RAZ des flags, ca continuera sans écrire
-                if (ended) {
-                    started = false;
-                    ended = false;
-                }
-            }
-        }
-    }
+    // for (let l = 0; l < lines.length; l++) {
+    //     let line = lines[l];
+    //
+    //     fileContent += line;
+    // }
+    //
+    // return fileContent;
+    return fs.readFileSync(file, 'utf-8');
 }
 
 /**
@@ -916,6 +607,9 @@ function postCrypt(process) {
             switch (sourceType) {
                 case 'file':
                     //@TODO ouverture de fichier pour recupération content
+                    fileExists(source, 1);
+                    inputContent = getFileContent(source);
+                    console.log(inputContent);
                     break;
                 case 'text':
                     inputContent = source;

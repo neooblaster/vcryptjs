@@ -8,24 +8,6 @@ class vcrypt
         foreach ($sources as $type => $typeSources) {
             foreach ($typeSources as $idxt => $source) {
 
-                // Récupération du contenu à crypter
-                //@TODO: TD1
-                switch ($type) {
-                    case 'file':
-                        if (file_exists($source)) {
-                            $inputContent = file_get_contents($source);
-                            continue;
-                        } else {
-                            $this->stderr("File %s does not exist", [$source]);
-                            // On met à jour l'index des sorties, car on ne peux pas prendre la décision
-                            // de tout décaller ce que l'utilisateur avait prévu dans sa commande
-                            $outIndex++;
-                            continue;
-                        }
-
-                        break;
-                }
-
         //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                 //@TODO : TD2
                 // Mettre le contenu dans la sortie correspondante
