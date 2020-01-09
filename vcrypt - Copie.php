@@ -10,7 +10,7 @@ class vcrypt
     protected function postCrypt ($process)
     {
         $options = $this->argv;
-        $keys = $this->getKeys();
+        $keys = $this->getKeys(); //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
         $inputs = $this->getInputs();
         $texts = $this->getTexts();
@@ -120,26 +120,6 @@ class vcrypt
         } else {
             return false;
         }
-    }
-
-    protected function getKeys ()
-    {
-        // Récupération des clés.
-        $keys = (@$this->argv['k']) ?: @$this->argv["keys"];
-        $keys = (!is_array($keys)) ? [$keys] : $keys;
-        $allKeys = [];
-
-        // Déspliter toutes les clés.
-        array_map(function ($el) use (&$allKeys) {
-            $allKeys = array_merge($allKeys, explode(self::OPTIONS['separator'], $el));
-        }, $keys);
-
-        // Cryptage des clés.
-        $keys = array_map(function ($el) {
-            return sha1($el);
-        }, $allKeys);
-
-        return $keys;
     }
 
     /**

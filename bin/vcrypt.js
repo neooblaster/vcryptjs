@@ -58,6 +58,7 @@
  * Chargement des dépendances.
  */
 const fs = require('fs');
+const sha1 = require('sha1');
 const readline = require('readline');
 const colors = {
     Reset: "\x1b[0m",
@@ -159,10 +160,14 @@ function getopt(shortopt, longopt = []) {
 
                 if (opt === lgOptName) {
                     if (lgOptConfig === ':' && !optVal) {
-                        log(`Option '--${opt}' require a value`, 1, []);
+                        log(`Option %s require a value`, 1, [opt]);
                     }
 
-                    procOptions[opt] = createOption(arg, opt, optVal);
+                    if (procOptions[opt]) {
+                        procOptions = appendOption(procOptions, arg, opt, optVal);
+                    } else {
+                        procOptions[opt] = createOption(arg, opt, optVal);
+                    }
                 }
             }
         }
@@ -180,11 +185,15 @@ function getopt(shortopt, longopt = []) {
             let nextOptChar2 = shortopt.substr(optIdx +2, 1);
 
             if (nextOptChar1 === ':' && nextOptChar2 !== ':' && !optVal) {
-                log(`Option '-${opt}' require a value`, 1, []);
+                log(`Option %s require a value`, 1, [opt]);
                 return;
             }
 
-            procOptions[opt] = createOption(arg, opt, optVal);
+            if (procOptions[opt]) {
+                procOptions = appendOption(procOptions, arg, opt, optVal);
+            } else {
+                procOptions[opt] = createOption(arg, opt, optVal);
+            }
         }
 
         // This is an implicit argument.
@@ -229,6 +238,16 @@ function createOption(optarg, opt, optval) {
     };
 }
 
+function appendOption(optstack, optagr, opt, optval) {
+    if (!(optstack[opt].val instanceof Array)) {
+        optstack[opt].val = [optstack[opt].val];
+    }
+
+    optstack[opt].val.push(optval);
+
+    return optstack;
+}
+
 /**
  * Afficher un message dans le stream.
  *
@@ -253,7 +272,6 @@ function log(message, level = 0, args = []){
     args.map(function (arg) {
         argi++;
         arg = colors.fg.Yellow + arg + colors.Reset;
-        // arg = colors.fg.Yellow + arg + colors.reset;
         if (/%[1-9]+\$s/.test(message)) {
             let regexp = new RegExp(`%${argi}\\$s`);
             message = message.replace(regexp, arg)
@@ -760,11 +778,33 @@ function getTexts() {
     return getOpts(['t', 'text']);
 }
 
+/**
+ * Return all differents keys to used to perform crypting.
+ *
+ * @returns {Array}  List of keys.
+ */
 function getKeys() {
-    // Retrieve input keys
-    let keys = OPTS['keys'] || OPTS['k'];
-    console.log(keys);
+    // Retrieve entered keys
     let allKeys = [];
+    let keys = OPTS['keys'] || OPTS['k'];
+    keys = keys.val;
+
+    if (!(keys instanceof Array)) {
+        keys = [keys];
+    }
+
+    // For unique key where user used comma as separator
+    // Split them in different key :
+    keys.map(function (key) {
+        allKeys = allKeys.concat(key.split(options.separator));
+    });
+
+    // Perform crypting on key for further processing.
+    keys = allKeys.map(function (key) {
+        return sha1(key);
+    });
+
+    return keys;
 }
 
 /**
