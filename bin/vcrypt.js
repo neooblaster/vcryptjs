@@ -238,6 +238,16 @@ function createOption(optarg, opt, optval) {
     };
 }
 
+/**
+ * Aggregate value under a option when user use multiple times the same options.
+ *
+ * @param {Object}  optstack
+ * @param {String}  optagr     Entered option (short or long)
+ * @param {String}  opt        Option Name
+ * @param {String}  optval     Option Value
+ *
+ * @returns {Array}  Return aggregated value for the option.
+ */
 function appendOption(optstack, optagr, opt, optval) {
     if (!(optstack[opt].val instanceof Array)) {
         optstack[opt].val = [optstack[opt].val];
@@ -756,6 +766,13 @@ function isOption(opts, op = "or") {
     return returnOp;
 }
 
+/**
+ * Get all values under a unique list for provided options.
+ *
+ * @param {Array}  opts   List of options names.
+ *
+ * @returns {Array} List of values.
+ */
 function getOpts(opts) {
     let outputArray = [];
 
@@ -868,6 +885,8 @@ function decrypt() {
  */
 function postCrypt(process) {
     let factor = 1;
+    let outIndex = 0;
+    let outputContent = null;
 
     switch (process) {
         case 'decrypt':
@@ -882,7 +901,71 @@ function postCrypt(process) {
     let keys = getKeys();
     let inputs = getInputs();
     let texts = getTexts();
-    let output = getOutpus();
+    let outputs = getOutpus();
+
+    // Regroupe kind of input to perform the same process :
+    let sources = ['file', 'text'];
+    sources['file'] = inputs;
+    sources['text'] = texts;
+
+    sources.map(function (sourceType) {
+        this[sourceType].map(function (source) {
+            let inputContent = null;
+
+            //@TODO : TD1
+            switch (sourceType) {
+                case 'file':
+                    //@TODO ouverture de fichier pour recupération content
+                    break;
+                case 'text':
+                    inputContent = source;
+                    break;
+            }
+
+            // Perform crypting
+            outputContent = '';
+
+            keys.map(function (key) {
+                // When outputContent is not null,
+                // We perform once again a crypting over already crypted content
+                // So the inputcontent must be those of outputContent
+                // Then reset outputContent
+                if (outputContent !== '') {
+                    inputContent = outputContent;
+                    outputContent = '';
+                }
+
+                let keyLen = key.length;
+                let textLen = inputContent.length;
+
+                for (p = 0; p < textLen; p++) {
+                    let kp = p % keyLen;
+
+                    outputContent += String.fromCharCode(
+                        inputContent.charCodeAt(p)
+                        + (factor * key.charCodeAt(kp))
+                    );
+                }
+            });
+
+
+            // @TODO : TD2
+            // Return crypted input in corresponding outputs :
+            if (outIndex <= (outputs.length - 1)) {
+            }
+            // If no corresponding in front of this input
+            // use standard output stream
+            else {
+                console.log(outputContent)
+            }
+
+
+
+
+
+
+        });
+    }.bind(sources));
 
 }
 

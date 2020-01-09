@@ -1,38 +1,15 @@
 <?php
 
-//echo ord("A");
-//echo chr(65);
-//echo hexdec("F");
-
-
 class vcrypt
 {
     protected function postCrypt ($process)
     {
-//        $options = $this->argv;
-//        $keys = $this->getKeys();
-
-//        $inputs = $this->getInputs();
-//        $texts = $this->getTexts();
-//        $outputs = $this->getOutputs();
-        //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-        $outIndex = 0;
-        $outputContent = null;
-
-        // Regroupement en array pour unifier le process de cryptage
-        $sources = [
-            // Fichiers en premiers
-            "file" => $inputs,
-            // Texts en second lieux
-            "text" => $texts
-        ];
-
         // Traiter toutes les sources
         foreach ($sources as $type => $typeSources) {
             foreach ($typeSources as $idxt => $source) {
-                $inputContent = null;
 
                 // Récupération du contenu à crypter
+                //@TODO: TD1
                 switch ($type) {
                     case 'file':
                         if (file_exists($source)) {
@@ -47,33 +24,10 @@ class vcrypt
                         }
 
                         break;
-                    case 'text':
-                        $inputContent = $source;
-                        break;
                 }
 
-                // Chiffrage du contenu (avec RAZ de la variable)
-                $outputContent = null;
-
-                foreach ($keys as $idx => $key) {
-                    // Si $outputContent n'est pas null
-                    // On est dans une étape de surchiffrage
-                    // l'inputContent doit être celui de l'outputContent
-                    // Remize à zéro de l'output content
-                    if ($outputContent !== null) {
-                        $inputContent = $outputContent;
-                        $outputContent = null;
-                    }
-
-                    $keyLen = strlen($key);
-                    $textLen = strlen($inputContent);
-
-                    for ($p = 0; $p < $textLen; $p++) {
-                        $kp = $p % $keyLen;
-                        $outputContent .= chr(ord($inputContent[$p]) + ( $factor * ord($key[$kp])));
-                    }
-                }
-
+        //<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                //@TODO : TD2
                 // Mettre le contenu dans la sortie correspondante
                 if ($outIndex <= count($outputs) - 1) {
                     $output = $outputs[$outIndex];
@@ -96,38 +50,5 @@ class vcrypt
             }
         }
     }
-
-    /**
-     * Regroupe les matches au sein du même tableau au lieu du regroupement par défaut.
-     *
-     * @param array $array Référence à inverser.
-     *
-     * @return bool
-     */
-    protected function preg_match_reverse_grouping (Array &$array)
-    {
-        if (!count($array)) return false;
-
-        if (!is_array($array[0]) || !count($array[0])) return false;
-
-        $matches = count($array);
-        $reversed = [];
-
-        foreach ($array[0] as $index => $match) {
-            $instance = [];
-            $instance[0] = $match;
-
-            for ($i = 1; $i < $matches; $i++) {
-                $instance[$i] = $array[$i][$index];
-            }
-
-            $reversed[$index] = $instance;
-        }
-
-        $array = $reversed;
-
-        return true;
-    }
-
 
 }
