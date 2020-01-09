@@ -332,26 +332,13 @@ function fileExists(path, level) {
 }
 
 /**
- * Lit le fichier spécifié
+ * Get the file content of the provided file path.
  *
- * @param file          Emplacement vers le fichier à traiter (master ou include).
- * @param nestedPath    Mémorisation des sous-dossiers invoqués, concaténés par appel de la fonction.
- * @param outputFile    Fichier de sortie (unique).
- * @param clearMode     Indicate to not perform inclusion and then to clear included content.
- * @param options       Options de lecture du fichier définie dans l'instruction.
+ * @param {String}   file Path to the file we want to get the content.
+ *
+ * @return {String}  File content
  */
-function getFileContent (file/*, nestedPath, outputFile, clearMode, options = {}*/) {
-    // let lines = fs.readFileSync(file, 'utf-8').split(/\r?\n/);
-    // let fileContent = '';
-    //
-    // Lecture de chaque ligne du fichier
-    // for (let l = 0; l < lines.length; l++) {
-    //     let line = lines[l];
-    //
-    //     fileContent += line;
-    // }
-    //
-    // return fileContent;
+function getFileContent (file) {
     return fs.readFileSync(file, 'utf-8');
 }
 
@@ -578,6 +565,7 @@ function postCrypt(process) {
     let factor = 1;
     let outIndex = 0;
     let outputContent = null;
+    let message = '';
 
     switch (process) {
         case 'decrypt':
@@ -603,13 +591,10 @@ function postCrypt(process) {
         this[sourceType].map(function (source) {
             let inputContent = null;
 
-            //@TODO : TD1
             switch (sourceType) {
                 case 'file':
-                    //@TODO ouverture de fichier pour recupération content
                     fileExists(source, 1);
                     inputContent = getFileContent(source);
-                    console.log(inputContent);
                     break;
                 case 'text':
                     inputContent = source;
@@ -643,24 +628,31 @@ function postCrypt(process) {
             });
 
 
-            // @TODO : TD2
             // Return crypted input in corresponding outputs :
             if (outIndex <= (outputs.length - 1)) {
+                let output = outputs[outIndex];
+                let outputStream = fs.createWriteStream(output, {});
+                outputStream.write(outputContent);
+                outIndex++;
+
+                message = (sourceType === 'file') ?
+                    `The file %s has been ${process}ed in file %s` :
+                    `The text %s has been ${process}ed in file %s` ;
+
+                log(message, 0, [source, output]);
             }
             // If no corresponding in front of this input
             // use standard output stream
             else {
+                message = (sourceType === 'file') ?
+                    `Please find below the ${process}ed content of file %s :` :
+                    `Please find below the ${process}ed result of text %s :` ;
+
+                log(message, 0, [source]);
                 console.log(outputContent)
             }
-
-
-
-
-
-
         });
     }.bind(sources));
-
 }
 
 

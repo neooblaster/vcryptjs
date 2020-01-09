@@ -10,7 +10,7 @@
   },
   "bundleDependencies": false,
   "deprecated": false,
-  "description": "A command line to crypt your file with one more different keys",
+  "description": "A command line to crypt your file or text with one more different keys",
   "homepage": "https://github.com/neooblaster/vcrypt#readme",
   "keywords": [
     "Crypt"
